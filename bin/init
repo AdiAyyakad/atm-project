@@ -10,9 +10,10 @@ elif [ -f "$path.bank" ] || [ -f "$path.atm" ]
   then
 	echo "Error: one of the files already exists"
 	exit 63
+elif touch "$path.bank" "$path.atm"
+  then
+    echo "Successfully initialized bank state" && exit 0
 else
-	touch "$path.bank" "$path.atm" && echo "Successfully initialized bank state" && exit 0
+  echo "Error creating initialization files"
+  exit 64
 fi
-
-echo "Error creating initialization files"
-exit 64
