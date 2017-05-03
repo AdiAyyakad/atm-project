@@ -3,3 +3,5 @@ bin/bank
 bin/router
 bin/list-test
 bin/hash-test
+.atm
+.bank

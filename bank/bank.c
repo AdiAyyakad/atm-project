@@ -58,6 +58,28 @@ ssize_t bank_recv(Bank *bank, char *data, size_t max_data_len)
 void bank_process_local_command(Bank *bank, char *command, size_t len)
 {
     // TODO: Implement the bank's local commands
+    char * p = strtok(command, " \n");
+
+    if (strcmp(p, "create-user") == 0) {
+      char *username, *pin_st, *balance_str;
+      int pin, balance;
+
+      p = strtok(NULL, " \n");
+      username = p;
+      p = strtok(NULL, " \n");
+      pin_str = p;
+      p = strtok(NULL, " \n");
+      balance_str = p;
+
+      pin = atoi(pin_str);
+      balance = atoi(balance_str);
+
+      if (username == NULL || pin_str == NULL || balance_str == NULL || pin < 0 || (pin - 9999) > 0 || balance < 0) {
+        printf("Usage: create-user <user-name> <pin> <balance>\n");
+      } else {
+        printf("Success: create-user user-name: %s, pin: %s, balance: %s\n", username, pin, balance);
+      }
+    }
 }
 
 void bank_process_remote_command(Bank *bank, char *command, size_t len)
