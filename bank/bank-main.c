@@ -1,4 +1,4 @@
-/* 
+/*
  * The main program for the Bank.
  *
  * You are free to change this as necessary.
@@ -19,7 +19,14 @@ int main(int argc, char**argv)
    char sendline[1000];
    char recvline[1000];
 
-   Bank *bank = bank_create();
+   FILE *fp = fopen(argv[1], "r");
+   if (fp == NULL) {
+     printf("Error opening bank initialization file\n");
+     return 64;
+   }
+
+   Bank *bank = bank_create(fp);
+   fclose(fp);
 
    printf("%s", prompt);
    fflush(stdout);

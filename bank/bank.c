@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-Bank* bank_create()
+Bank* bank_create(FILE *fp)
 {
     Bank *bank = (Bank*) malloc(sizeof(Bank));
     if(bank == NULL)
@@ -66,7 +66,7 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
 	/*
 	 * The following is a toy example that simply receives a
-	 * string from the ATM, prepends "Bank got: " and echoes 
+	 * string from the ATM, prepends "Bank got: " and echoes
 	 * it back to the ATM before printing it to stdout.
 	 */
 
