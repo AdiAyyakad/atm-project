@@ -60,6 +60,8 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
     // TODO: Implement the bank's local commands
     char * p = strtok(command, " \n");
 
+    if (p == NULL) return;
+
     if (strcmp(p, "create-user") == 0) {
       char *username = strtok(NULL, " \n");
       char *pin_str = strtok(NULL, " \n");
@@ -120,12 +122,13 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 	 * it back to the ATM before printing it to stdout.
 	 */
 
-	/*
-    char sendline[1000];
-    command[len]=0;
-    sprintf(sendline, "Bank got: %s", command);
+  char sendline[1000];
+  command[len]=0;
+  // sprintf(sendline, "Bank got: %s", command);
+  char *p = strtok(command, " \n");
+  if (strcmp(p, "user-exists") == 0) { // return "yes" or "no"
+    // char *user = strtok(NULL, " \n");
+    if (1 /* TODO: check if user exists */) sprintf(sendline, "yes");
     bank_send(bank, sendline, strlen(sendline));
-    printf("Received the following:\n");
-    fputs(command, stdout);
-	*/
+  }
 }

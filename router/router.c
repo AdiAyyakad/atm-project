@@ -48,6 +48,7 @@ void router_free(Router *router)
 
 ssize_t router_recv(Router *router, char *data, size_t max_len, struct sockaddr_in *sender)
 {
+    printf("Received %s\n", data);
     socklen_t len = 0;
     if(sender != NULL)
         len = sizeof(*sender);
@@ -56,12 +57,14 @@ ssize_t router_recv(Router *router, char *data, size_t max_len, struct sockaddr_
 
 ssize_t router_sendto_atm(Router *router, char *data, size_t len)
 {
+    printf("Send to atm %s\n", data);
     return sendto(router->sockfd, data, len, 0,
            (struct sockaddr *)&router->atm_addr, sizeof(router->atm_addr));
 }
 
 ssize_t router_sendto_bank(Router *router, char *data, size_t len)
 {
+    printf("Send to bank %s\n", data);
     return sendto(router->sockfd, data, len, 0,
            (struct sockaddr *)&router->bank_addr, sizeof(router->bank_addr));
 }

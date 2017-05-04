@@ -66,58 +66,69 @@ void atm_process_command(ATM *atm, char *command)
       // check if someone is already logged in
       if (strlen(atm->current_user) != 0) {
         printf("A user is already logged in\n");
-      } else {
-        char *username = strtok(NULL, " \n");
+        return;
+      }
 
-        if (username == NULL || strlen(username) > 250) {
-          printf("Usage: begin-session <user-name>\n");
-        } else if (0/* !(exists in bank)*/) {
+      char *username = strtok(NULL, " \n");
+
+      if (username == NULL || strlen(username) > 250) {
+        printf("Usage: begin-session <user-name>\n");
+        return;
+      }
+
+      // check if user exists from bank
+      char response[10000], message[262];
+      sprintf(message, "user-exists %s", username);
+      atm_send(atm, message, strlen(message));
+      int n = atm_recv(atm, response, 10000);
+      response[n]=0;
+      if (strcmp(response, "yes") != 0){
           printf("No such user\n");
+          return;
+      }
+
+      char card_filename[256];
+      sprintf(card_filename, "%s.card", username);
+
+      FILE *cardfp = fopen(card_filename, "r");
+      if (cardfp == NULL) {
+        printf("Unable to access %s\'s card\n", username);
+        return;
+      }
+
+      char ipin_str[5], card_pin[129];
+      printf("PIN? ");
+
+      if (fgets(ipin_str, sizeof(ipin_str), stdin)) {
+        p = strchr(ipin_str, '\n');
+        if (p) {
+          *p = '\0';
         } else {
-          char card_filename[256];
-          sprintf(card_filename, "%s.card", username);
+          int ch;
+          // newline not found, flush to end of line
+          while (((ch = getchar()) != '\n') && !feof(stdin) && !ferror(stdin));
+        }
 
-          FILE *cardfp = fopen(card_filename, "r");
-          if (cardfp == NULL) {
-            printf("Unable to access %s\'s card\n", username);
+        if (fgets(card_pin, sizeof(card_pin), cardfp)) {
+          p = strchr(card_pin, '\n');
+          if (p) {
+            *p = '\0';
           } else {
-            char ipin_str[5], card_pin[129];
-            printf("PIN? ");
-            if (fgets(ipin_str, sizeof(ipin_str), stdin)) {
-              p = strchr(ipin_str, '\n');
-              if (p) {
-                *p = '\0';
-              } else {
-                int ch;
-                /* newline not found, flush stdin to end of line */
-                while (((ch = getchar()) != '\n') && !feof(stdin) && !ferror(stdin));
-                printf("newline not found\n");
-              }
+            int ch;
+            while ((ch = getchar()) != '\n' && !feof(cardfp) && !ferror(cardfp));
+          }
+          fclose(cardfp);
 
-              if (fgets(card_pin, sizeof(card_pin), cardfp)) {
-                p = strchr(card_pin, '\n');
-                if (p) {
-                  *p = '\0';
-                } else {
-                  int ch;
-                  while ((ch = getchar()) != '\n' && !feof(cardfp) && !ferror(cardfp));
-                  printf("newline not found in cardfp\n");
-                }
-
-                card_pin[4] = '\0';
-                if (strcmp(ipin_str, card_pin) == 0) {
-                  printf("Authorized\n");
-                  strncpy(atm->current_user, username, strlen(username));
-                } else {
-                  printf("Not authorized\n");
-                }
-              }
-            }
-
-            fclose(cardfp);
+          card_pin[4] = '\0';
+          if (strcmp(ipin_str, card_pin) == 0) {
+            printf("Authorized\n");
+            strncpy(atm->current_user, username, strlen(username));
+          } else {
+            printf("Not authorized\n");
           }
         }
       }
+
     } else if (strcmp(p, "withdraw") == 0) {
       p = strtok(NULL, " \n");
       int amt = atoi(p);
