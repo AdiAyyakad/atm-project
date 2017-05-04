@@ -29,6 +29,7 @@ ATM* atm_create()
 
     // Set up the protocol state
     // TODO set up more, as needed
+    memset(atm->current_user, '\0', 251);
 
     return atm;
 }
@@ -58,6 +59,50 @@ ssize_t atm_recv(ATM *atm, char *data, size_t max_data_len)
 void atm_process_command(ATM *atm, char *command)
 {
     // TODO: Implement the ATM's side of the ATM-bank protocol
+    char *p = strtok(command, " \n");
+
+    if (strcmp(p, "begin-session") == 0) {
+      // check if someone is already logged in
+      if (strlen(atm->current_user) != 0) {
+        printf("A user is already logged in\n");
+      } else {
+        char *username;
+
+        p = strtok(NULL, " \n");
+        username = p;
+
+        if (username == NULL || strlen(username) > 250) {
+          printf("Usage: begin-session <user-name>\n");
+          return;
+        } else if (0/* !(exists in bank)*/) {
+          printf("No such user\n");
+          return;
+        }
+
+        char card_filename[256];
+        sprintf(card_filename, "%s.card", username);
+
+        FILE *cardfp = fopen(card_filename, "r");
+        if (cardfp == NULL) {
+          printf("Unable to access %s\'s card\n", username);
+          return;
+        }
+
+        char ipin_str[5], card_pin[101];
+        printf("PIN? ");
+        scanf("%s", ipin_str);
+        ipin_str[4] = '\0';
+
+        fgets(card_pin, 100, cardfp);
+        if (strcmp(ipin_str, card_pin) == 0) {
+            printf("Authorized\n");
+            strncpy(atm->current_user, username, strlen(username));
+        } else {
+          printf("Not authorized\n");
+        }
+      }
+
+    }
 
 	/*
 	 * The following is a toy example that simply sends the

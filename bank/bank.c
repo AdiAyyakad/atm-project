@@ -62,7 +62,7 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
 
     if (strcmp(p, "create-user") == 0) {
       char *username, *pin_str, *balance_str;
-      int pin, balance;
+      int balance;
 
       p = strtok(NULL, " \n");
       username = p;
@@ -71,17 +71,13 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
       p = strtok(NULL, " \n");
       balance_str = p;
 
-      pin = atoi(pin_str);
       balance = atoi(balance_str);
 
-      if (username == NULL || strlen(username) > 250 || pin_str == NULL || balance_str == NULL || pin < 0 || (pin - 9999) > 0 || balance < 0) {
+      if (username == NULL || strlen(username) > 250 || pin_str == NULL || balance_str == NULL || strlen(pin_str) == 4 || balance < 0) {
         printf("Usage: create-user <user-name> <pin> <balance>\n");
       } else {
-        printf("Success: create-user user-name: %s, pin: %d, balance: %d\n", username, pin, balance);
-        char card_filename[255];
-        memset(card_filename, '\0', 255);
-        strcat(card_filename, username);
-        strcat(card_filename, ".card");
+        char card_filename[256];
+        sprintf(card_filename, "%s.card", username);
 
         FILE *cardfp = fopen(card_filename, "w+");
         if (cardfp == NULL) {
