@@ -122,6 +122,8 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
     } else {
       printf("Invalid command\n");
     }
+
+    fflush(stdout);
 }
 
 void bank_process_remote_command(Bank *bank, char *command, size_t len)

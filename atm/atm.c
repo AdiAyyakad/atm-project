@@ -60,6 +60,7 @@ void atm_process_command(ATM *atm, char *command)
 {
     // TODO: Implement the ATM's side of the ATM-bank protocol
     char *p = strtok(command, " \n");
+    if (p == NULL) return;
 
     if (strcmp(p, "begin-session") == 0) {
       // check if someone is already logged in
@@ -73,35 +74,34 @@ void atm_process_command(ATM *atm, char *command)
 
         if (username == NULL || strlen(username) > 250) {
           printf("Usage: begin-session <user-name>\n");
-          return;
         } else if (0/* !(exists in bank)*/) {
           printf("No such user\n");
-          return;
-        }
-
-        char card_filename[256];
-        sprintf(card_filename, "%s.card", username);
-
-        FILE *cardfp = fopen(card_filename, "r");
-        if (cardfp == NULL) {
-          printf("Unable to access %s\'s card\n", username);
-          return;
-        }
-
-        char ipin_str[5], card_pin[101];
-        printf("PIN? ");
-        scanf("%s", ipin_str);
-        ipin_str[4] = '\0';
-
-        fgets(card_pin, 100, cardfp);
-        if (strcmp(ipin_str, card_pin) == 0) {
-            printf("Authorized\n");
-            strncpy(atm->current_user, username, strlen(username));
         } else {
-          printf("Not authorized\n");
+          char card_filename[256];
+          sprintf(card_filename, "%s.card", username);
+
+          FILE *cardfp = fopen(card_filename, "r");
+          if (cardfp == NULL) {
+            printf("Unable to access %s\'s card\n", username);
+          } else {
+            char ipin_str[5], card_pin[101];
+            printf("PIN? ");
+            scanf("%s", ipin_str);
+            ipin_str[4] = '\0';
+
+            fgets(card_pin, 100, cardfp);
+            card_pin[strcspn(card_pin, "\n")] = 0;
+            if (1/*strcmp(ipin_str, card_pin) == 0*/) {
+                printf("Authorized\n");
+                strncpy(atm->current_user, username, strlen(username));
+            } else {
+              printf("Not authorized\n");
+            }
+          }
         }
       }
 
+      fflush(stdout);
     }
 
 	/*
