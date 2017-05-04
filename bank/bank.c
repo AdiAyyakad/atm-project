@@ -61,17 +61,10 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
     char * p = strtok(command, " \n");
 
     if (strcmp(p, "create-user") == 0) {
-      char *username, *pin_str, *balance_str;
-      int balance;
-
-      p = strtok(NULL, " \n");
-      username = p;
-      p = strtok(NULL, " \n");
-      pin_str = p;
-      p = strtok(NULL, " \n");
-      balance_str = p;
-
-      balance = atoi(balance_str);
+      char *username = strtok(NULL, " \n");
+      char *pin_str = strtok(NULL, " \n");
+      char *balance_str = strtok(NULL, " \n");
+      int balance = atoi(balance_str);
 
       if (username == NULL || strlen(username) > 250 || pin_str == NULL || balance_str == NULL || strlen(pin_str) == 4 || balance < 0) {
         printf("Usage: create-user <user-name> <pin> <balance>\n");
@@ -92,15 +85,9 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
         printf("Created user %s\n", username);
       }
     } else if (strcmp(p, "deposit") == 0) {
-      char *username, *amt_str;
-      int amt;
-
-      p = strtok(NULL, " \n");
-      username = p;
-      p = strtok(NULL, " \n");
-      amt_str = p;
-
-      amt = atoi(amt_str);
+      char *username = strtok(NULL, " \n");
+      char *amt_str = strtok(NULL, " \n");
+      int amt = atoi(amt_str);
 
       if (username == NULL || strlen(username) > 250 || amt_str == NULL || amt < 0) {
         printf("Usage: deposit <user-name> <amt>\n");
@@ -109,10 +96,7 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
       }
 
     } else if (strcmp(p, "balance") == 0) {
-      char *username;
-
-      p = strtok(NULL, " \n");
-      username = p;
+      char *username = strtok(NULL, " \n");
 
       if (username == NULL || strlen(username) > 250) {
         printf("Usage: balance <user-name>\n");

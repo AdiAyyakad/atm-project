@@ -67,10 +67,7 @@ void atm_process_command(ATM *atm, char *command)
       if (strlen(atm->current_user) != 0) {
         printf("A user is already logged in\n");
       } else {
-        char *username;
-
-        p = strtok(NULL, " \n");
-        username = p;
+        char *username = strtok(NULL, " \n");
 
         if (username == NULL || strlen(username) > 250) {
           printf("Usage: begin-session <user-name>\n");
