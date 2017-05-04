@@ -84,24 +84,82 @@ void atm_process_command(ATM *atm, char *command)
           if (cardfp == NULL) {
             printf("Unable to access %s\'s card\n", username);
           } else {
-            char ipin_str[5], card_pin[101];
+            char ipin_str[5], card_pin[129];
             printf("PIN? ");
-            scanf("%s", ipin_str);
-            ipin_str[4] = '\0';
+            if (fgets(ipin_str, sizeof(ipin_str), stdin)) {
+              p = strchr(ipin_str, '\n');
+              if (p) {
+                *p = '\0';
+              } else {
+                int ch;
+                /* newline not found, flush stdin to end of line */
+                while (((ch = getchar()) != '\n') && !feof(stdin) && !ferror(stdin));
+                printf("newline not found\n");
+              }
 
-            fgets(card_pin, 100, cardfp);
-            card_pin[strcspn(card_pin, "\n")] = 0;
-            if (1/*strcmp(ipin_str, card_pin) == 0*/) {
-                printf("Authorized\n");
-                strncpy(atm->current_user, username, strlen(username));
-            } else {
-              printf("Not authorized\n");
+              if (fgets(card_pin, sizeof(card_pin), cardfp)) {
+                p = strchr(card_pin, '\n');
+                if (p) {
+                  *p = '\0';
+                } else {
+                  int ch;
+                  while ((ch = getchar()) != '\n' && !feof(cardfp) && !ferror(cardfp));
+                  printf("newline not found in cardfp\n");
+                }
+
+                card_pin[4] = '\0';
+                if (strcmp(ipin_str, card_pin) == 0) {
+                  printf("Authorized\n");
+                  strncpy(atm->current_user, username, strlen(username));
+                } else {
+                  printf("Not authorized\n");
+                }
+              }
             }
+
+            fclose(cardfp);
           }
         }
       }
+    } else if (strcmp(p, "withdraw") == 0) {
+      p = strtok(NULL, " \n");
+      int amt = atoi(p);
 
-      fflush(stdout);
+      if (strlen(atm->current_user) == 0) {
+        printf("No user logged in\n");
+      } else if (p == NULL || amt < 0) {
+        printf("Usage: withdraw <amt>\n");
+      } else {
+        int current_balance = 1000; // TODO: get current balance
+        if (current_balance - amt < 0) {
+          printf("Insufficient funds\n");
+        } else {
+          printf("$%d dispensed\n", amt);
+          // TODO: update balance to be current_balance - amt
+        }
+      }
+
+    } else if (strcmp(p, "balance") == 0) {
+      p = strtok(NULL, " \n");
+
+      if (strlen(atm->current_user) == 0) {
+        printf("No user logged in\n");
+      } else if (p != NULL) {
+        printf("Usage: balance\n");
+      } else {
+        int balance = 10; // TODO: get balance
+        printf("$%d\n", balance);
+      }
+
+    } else if (strcmp(p, "end-session") == 0) {
+      if (strlen(atm->current_user) == 0) {
+        printf("No user logged in\n");
+      } else {
+        strcpy(atm->current_user, "");
+        printf("User logged out\n");
+      }
+    } else {
+      printf("Invalid command %s\n", p);
     }
 
 	/*

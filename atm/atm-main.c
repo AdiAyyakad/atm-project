@@ -9,8 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static char prompt[256] = "ATM: ";
-
 int main(int argc, char **argv)
 {
     char user_input[1000];
@@ -23,15 +21,14 @@ int main(int argc, char **argv)
 
     ATM *atm = atm_create();
 
-    printf("%s", prompt);
+    printf("ATM: ");
 
     while (fgets(user_input, 10000,stdin) != NULL)
     {
         atm_process_command(atm, user_input);
         char username[252] = "";
-        if (strlen(atm->current_user) > 0) sprintf(username, " %s", atm->current_user);
-        sprintf(prompt, "ATM%s: ", username);
-        printf("%s", prompt);
+        if (strlen(atm->current_user) > 0) sprintf(username, " (%s)", atm->current_user);
+        printf("ATM%s: ", username);
         fflush(stdout);
     }
 	return EXIT_SUCCESS;
