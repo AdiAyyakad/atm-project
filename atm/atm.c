@@ -55,24 +55,28 @@ ssize_t atm_recv(ATM *atm, char *data, size_t max_data_len)
     return recvfrom(atm->sockfd, data, max_data_len, 0, NULL, NULL);
 }
 
-void clear_router(ATM *atm) {
-  char msg[1000];
-  memset(msg, '\0', 1000);
-  atm_send(atm, msg, 1000);
-}
-
-void ask_bank(ATM *atm, char *command, char response[]) {
-  clear_router(atm);
-  atm_send(atm, command, strlen(command));
-  int n = atm_recv(atm, response, strlen(response));
-  response[n] = 0;
-}
-
 int get_balance(ATM *atm) {
   char response[10000], message[259];
   sprintf(message, "balance %s", atm->current_user);
-  ask_bank(atm, message, response);
+
+  atm_send(atm, message, strlen(message)+1);
+  int n = atm_recv(atm, response, strlen(response));
+  response[n] = 0;
+
   return atoi(response);
+}
+
+int user_exists(ATM *atm, char *username) {
+  // check if user exists from bank
+  char response[10000], message[263];
+  sprintf(message, "user-exists %s", username);
+
+  atm_send(atm, message, strlen(message)+1);
+  int n = atm_recv(atm, response, strlen(response));
+  response[n] = 0;
+
+  printf("response: %s\n", response);
+  return strcmp(response, "yes");
 }
 
 void atm_process_command(ATM *atm, char *command)
@@ -94,14 +98,9 @@ void atm_process_command(ATM *atm, char *command)
         return;
       }
 
-      // check if user exists from bank
-      char response[10000], message[262];
-      sprintf(message, "user-exists %s", username);
-      ask_bank(atm, message, response);
-
-      if (strcmp(response, "y") != 0){
-          printf("No such user %s\n", response);
-          return;
+      if (user_exists(atm, username) == 0) {
+        printf("No such user\n");
+        return;
       }
 
       char card_filename[256];
@@ -156,9 +155,11 @@ void atm_process_command(ATM *atm, char *command)
       } else if (p == NULL || amt < 0) {
         printf("Usage: withdraw <amt>\n");
       } else {
-        char response[10000], msg[20];
+        char response[10000], msg[271]; // 9 + 250 + 1 + 10 + 1
         sprintf(msg, "withdraw %s %d", atm->current_user, amt);
-        ask_bank(atm, msg, response);
+        atm_send(atm, msg, strlen(msg)+1);
+        int n = atm_recv(atm, response, strlen(response));
+        response[n] = 0;
 
         if (strcmp(response, "success") != 0) {
           printf("Insufficient funds\n");
