@@ -175,7 +175,6 @@ void atm_process_command(ATM *atm, char *command)
         int n = atm_recv(atm, response, SIZE);
         response[n] = 0;
 
-        printf("response: %s\n", response);
         if (strcmp(response, "success") == 0) {
           printf("$%d dispensed\n", amt);
         } else {

@@ -228,13 +228,17 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
     if (amt_str != NULL) {
       int new_balance = balance - atoi(amt_str);
-      int *nbp = malloc(sizeof(int));
-      *nbp = new_balance;
+      if (new_balance < 0) {
+        sprintf(sendline, "failure");
+      } else {
+        int *nbp = malloc(sizeof(int));
+        *nbp = new_balance;
 
-      char *userptr = malloc(strlen(user));
-      strcpy(userptr, user);
-      hash_table_add(bank->users, userptr, nbp);
-      sprintf(sendline, "success");
+        char *userptr = malloc(strlen(user));
+        strcpy(userptr, user);
+        hash_table_add(bank->users, userptr, nbp);
+        sprintf(sendline, "success");
+      }
     } else {
       sprintf(sendline, "failure");
     }
