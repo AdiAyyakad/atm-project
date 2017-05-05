@@ -57,6 +57,12 @@ ssize_t bank_recv(Bank *bank, char *data, size_t max_data_len)
     return recvfrom(bank->sockfd, data, max_data_len, 0, NULL, NULL);
 }
 
+void clear_router(Bank *bank) {
+  char msg[1000];
+  memset(msg, '\0', 1000);
+  bank_send(bank, msg, 1000);
+}
+
 void bank_process_local_command(Bank *bank, char *command, size_t len)
 {
     char * p = strtok(command, " \n");
@@ -186,5 +192,6 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
   }
 
+  clear_router(bank);
   bank_send(bank, sendline, strlen(sendline));
 }

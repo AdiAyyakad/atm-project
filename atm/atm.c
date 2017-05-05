@@ -55,7 +55,14 @@ ssize_t atm_recv(ATM *atm, char *data, size_t max_data_len)
     return recvfrom(atm->sockfd, data, max_data_len, 0, NULL, NULL);
 }
 
+void clear_router(ATM *atm) {
+  char msg[1000];
+  memset(msg, '\0', 1000);
+  atm_send(atm, msg, 1000);
+}
+
 void ask_bank(ATM *atm, char *command, char response[]) {
+  clear_router(atm);
   atm_send(atm, command, strlen(command));
   int n = atm_recv(atm, response, strlen(response));
   response[n] = 0;
@@ -153,7 +160,7 @@ void atm_process_command(ATM *atm, char *command)
         sprintf(msg, "withdraw %s %d", atm->current_user, amt);
         ask_bank(atm, msg, response);
 
-        if (strcmp(response, "failure") == 0) {
+        if (strcmp(response, "success") != 0) {
           printf("Insufficient funds\n");
         } else {
           printf("$%d dispensed\n", amt);
@@ -180,22 +187,6 @@ void atm_process_command(ATM *atm, char *command)
         printf("User logged out\n");
       }
     } else {
-      printf("Invalid command %s\n", p);
+      printf("Invalid command\n");
     }
-
-	/*
-	 * The following is a toy example that simply sends the
-	 * user's command to the bank, receives a message from the
-	 * bank, and then prints it to stdout.
-	 */
-
-	/*
-    char recvline[10000];
-    int n;
-
-    atm_send(atm, command, strlen(command));
-    n = atm_recv(atm,recvline,10000);
-    recvline[n]=0;
-    fputs(recvline,stdout);
-	*/
 }
