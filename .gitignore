@@ -8,3 +8,4 @@ bin/hash-test
 *.card
 trash/
 p4.pdf
+*.pages
