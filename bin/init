@@ -12,6 +12,13 @@ elif [ -f "$path.bank" ] || [ -f "$path.atm" ]
 	exit 63
 elif touch "$path.bank" "$path.atm"
   then
+
+    SALT="$(openssl rand -base64 48)"
+    PEPPER="$(openssl rand -base64 48)"
+
+    echo "$SALT" >> "$path.bank"
+    echo "$PEPPER" >> "$path.bank"
+
     echo "Successfully initialized bank state" && exit 0
 else
   echo "Error creating initialization files"
