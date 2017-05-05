@@ -28,7 +28,6 @@ ATM* atm_create()
     bind(atm->sockfd,(struct sockaddr *)&atm->atm_addr,sizeof(atm->atm_addr));
 
     // Set up the protocol state
-    // TODO set up more, as needed
     memset(atm->current_user, '\0', 251);
 
     return atm;
@@ -56,9 +55,21 @@ ssize_t atm_recv(ATM *atm, char *data, size_t max_data_len)
     return recvfrom(atm->sockfd, data, max_data_len, 0, NULL, NULL);
 }
 
+void ask_bank(ATM *atm, char *command, char response[]) {
+  atm_send(atm, command, strlen(command));
+  int n = atm_recv(atm, response, strlen(response));
+  response[n] = 0;
+}
+
+int get_balance(ATM *atm) {
+  char response[10000], message[259];
+  sprintf(message, "balance %s", atm->current_user);
+  ask_bank(atm, message, response);
+  return atoi(response);
+}
+
 void atm_process_command(ATM *atm, char *command)
 {
-    // TODO: Implement the ATM's side of the ATM-bank protocol
     char *p = strtok(command, " \n");
     if (p == NULL) return;
 
@@ -79,11 +90,10 @@ void atm_process_command(ATM *atm, char *command)
       // check if user exists from bank
       char response[10000], message[262];
       sprintf(message, "user-exists %s", username);
-      atm_send(atm, message, strlen(message));
-      int n = atm_recv(atm, response, 10000);
-      response[n]=0;
-      if (strcmp(response, "yes") != 0){
-          printf("No such user\n");
+      ask_bank(atm, message, response);
+
+      if (strcmp(response, "y") != 0){
+          printf("No such user %s\n", response);
           return;
       }
 
@@ -131,19 +141,22 @@ void atm_process_command(ATM *atm, char *command)
 
     } else if (strcmp(p, "withdraw") == 0) {
       p = strtok(NULL, " \n");
-      int amt = atoi(p);
+      int amt;
+      if (p != NULL) amt = atoi(p);
 
       if (strlen(atm->current_user) == 0) {
         printf("No user logged in\n");
       } else if (p == NULL || amt < 0) {
         printf("Usage: withdraw <amt>\n");
       } else {
-        int current_balance = 1000; // TODO: get current balance
-        if (current_balance - amt < 0) {
+        char response[10000], msg[20];
+        sprintf(msg, "withdraw %s %d", atm->current_user, amt);
+        ask_bank(atm, msg, response);
+
+        if (strcmp(response, "failure") == 0) {
           printf("Insufficient funds\n");
         } else {
           printf("$%d dispensed\n", amt);
-          // TODO: update balance to be current_balance - amt
         }
       }
 
@@ -155,7 +168,7 @@ void atm_process_command(ATM *atm, char *command)
       } else if (p != NULL) {
         printf("Usage: balance\n");
       } else {
-        int balance = 10; // TODO: get balance
+        int balance = get_balance(atm);
         printf("$%d\n", balance);
       }
 

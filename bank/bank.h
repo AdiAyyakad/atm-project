@@ -1,5 +1,5 @@
 /*
- * The Bank takes commands from stdin as well as from the ATM.  
+ * The Bank takes commands from stdin as well as from the ATM.
  *
  * Commands from stdin be handled by bank_process_local_command.
  *
@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include "hash_table.h"
 
 typedef struct _Bank
 {
@@ -29,6 +30,7 @@ typedef struct _Bank
 
     // Protocol state
     // TODO add more, as needed
+    HashTable *users;
 } Bank;
 
 Bank* bank_create();
@@ -39,4 +41,3 @@ void bank_process_local_command(Bank *bank, char *command, size_t len);
 void bank_process_remote_command(Bank *bank, char *command, size_t len);
 
 #endif
-

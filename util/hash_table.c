@@ -7,7 +7,7 @@ HashTable* hash_table_create(uint32_t num_bins)
 {
     HashTable *ht;
     uint32_t i;
-   
+
     ht = (HashTable*) malloc(sizeof(HashTable));
     ht->num_bins = num_bins;
     ht->bins = (List**) malloc(sizeof(List*) * num_bins);
@@ -87,13 +87,12 @@ void hash_table_add(HashTable *ht, char *key, void *val)
 {
     uint32_t idx = hash(key, strlen(key)) % ht->num_bins;
 
-    // Do not permit duplicates
-    if(list_find(ht->bins[idx], key) == NULL)
-    {
-        ht->size -= list_size(ht->bins[idx]);
-        list_add(ht->bins[idx], key, val);
-        ht->size += list_size(ht->bins[idx]);
-    }
+    // delete key if it exists
+    if(list_find(ht->bins[idx], key) != NULL) hash_table_del(ht, key);
+
+    ht->size -= list_size(ht->bins[idx]);
+    list_add(ht->bins[idx], key, val);
+    ht->size += list_size(ht->bins[idx]);
 }
 
 void* hash_table_find(HashTable *ht, const char *key)
