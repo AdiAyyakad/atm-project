@@ -86,7 +86,8 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
         fprintf(cardfp, "%s\n", content);
         fclose(cardfp);
 
-        int *balancep = &balance;
+        int *balancep = malloc(sizeof(int));
+        *balancep = balance;
         hash_table_add(bank->users, username, balancep);
 
         printf("Created user %s\n", username);
@@ -107,7 +108,8 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
         if (new_balance < 0) {
           printf("Too rich for this program\n");
         } else {
-          int *nbp = &new_balance;
+          int *nbp = malloc(sizeof(int));
+          *nbp = new_balance;
           hash_table_add(bank->users, username, nbp);
           printf("$%d added to %s\'s account\n", amt, username);
         }
@@ -140,34 +142,43 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
   char *p = strtok(command, " \n");
   if (strcmp(p, "user-exists") == 0) { // return "yes" or "no"
+
     char *user = strtok(NULL, " \n");
     if (hash_table_find(bank->users, user) != NULL) {
       sprintf(sendline, "%s", "y");
     } else {
       sprintf(sendline, "%s", "n");
     }
+
   } else if (strcmp(p, "balance") == 0) { // returns the balance
+
     // don't need to check for user existence because atm already is locked into one user
     char *user = strtok(NULL, " \n");
     int *balancep = (int *) hash_table_find(bank->users, user);
     sprintf(sendline, "%d", *balancep);
+
   } else if (strcmp(p, "withdraw") == 0) {
+
     char *user = strtok(NULL, " \n");
     char *amt_str = strtok(NULL, " \n");
     int balance = *((int *) hash_table_find(bank->users, user));
 
     if (amt_str != NULL) {
       int new_balance = balance - atoi(amt_str);
-      int *nbp = &new_balance;
+      int *nbp = malloc(sizeof(int));
+      *nbp = new_balance;
       hash_table_add(bank->users, user, nbp);
       sprintf(sendline, "success");
     } else {
       sprintf(sendline, "failure");
     }
+
   } else {
+
     // should never happen
     sprintf(sendline, "Invalid command");
     printf("Invalid command\n");
+
   }
 
   bank_send(bank, sendline, strlen(sendline));

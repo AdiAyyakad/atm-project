@@ -3,7 +3,7 @@ bin/bank
 bin/router
 bin/list-test
 bin/hash-test
-.atm
-.bank
-.card
+*.atm
+*.bank
+*.card
 trash/
