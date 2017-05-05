@@ -173,7 +173,10 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
       int new_balance = balance - atoi(amt_str);
       int *nbp = malloc(sizeof(int));
       *nbp = new_balance;
-      hash_table_add(bank->users, user, nbp);
+
+      char *userptr = malloc(strlen(user));
+      strcpy(userptr, user);
+      hash_table_add(bank->users, userptr, nbp);
       sprintf(sendline, "success");
     } else {
       sprintf(sendline, "failure");

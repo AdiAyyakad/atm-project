@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define SIZE 10000
+
 ATM* atm_create()
 {
     ATM *atm = (ATM*) malloc(sizeof(ATM));
@@ -55,27 +57,32 @@ ssize_t atm_recv(ATM *atm, char *data, size_t max_data_len)
     return recvfrom(atm->sockfd, data, max_data_len, 0, NULL, NULL);
 }
 
+/**
+  * Returns current user balance
+  */
 int get_balance(ATM *atm) {
-  char response[10000], message[259];
+  char response[SIZE], message[259];
   sprintf(message, "balance %s", atm->current_user);
 
   atm_send(atm, message, strlen(message)+1);
-  int n = atm_recv(atm, response, strlen(response));
+  int n = atm_recv(atm, response, SIZE);
   response[n] = 0;
 
   return atoi(response);
 }
 
+/**
+  * Returns 0 for user does exist, anything else for does not exist
+  */
 int user_exists(ATM *atm, char *username) {
   // check if user exists from bank
-  char response[10000], message[263];
+  char response[SIZE], message[263];
   sprintf(message, "user-exists %s", username);
 
   atm_send(atm, message, strlen(message)+1);
-  int n = atm_recv(atm, response, strlen(response));
+  int n = atm_recv(atm, response, SIZE);
   response[n] = 0;
 
-  printf("response: %s\n", response);
   return strcmp(response, "yes");
 }
 
@@ -98,7 +105,7 @@ void atm_process_command(ATM *atm, char *command)
         return;
       }
 
-      if (user_exists(atm, username) == 0) {
+      if (user_exists(atm, username) != 0) {
         printf("No such user\n");
         return;
       }
@@ -155,16 +162,17 @@ void atm_process_command(ATM *atm, char *command)
       } else if (p == NULL || amt < 0) {
         printf("Usage: withdraw <amt>\n");
       } else {
-        char response[10000], msg[271]; // 9 + 250 + 1 + 10 + 1
+        char response[SIZE], msg[271]; // 9 + 250 + 1 + 10 + 1
         sprintf(msg, "withdraw %s %d", atm->current_user, amt);
         atm_send(atm, msg, strlen(msg)+1);
-        int n = atm_recv(atm, response, strlen(response));
+        int n = atm_recv(atm, response, SIZE);
         response[n] = 0;
 
-        if (strcmp(response, "success") != 0) {
-          printf("Insufficient funds\n");
-        } else {
+        printf("response: %s\n", response);
+        if (strcmp(response, "success") == 0) {
           printf("$%d dispensed\n", amt);
+        } else {
+          printf("Insufficient funds\n");
         }
       }
 
