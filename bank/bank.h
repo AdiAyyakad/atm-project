@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include "hash_table.h"
 
-#define SNPSIZE 129
+#define KSIZE 49
 
 typedef struct _User {
   int pin;
@@ -39,8 +39,7 @@ typedef struct _Bank
     // Protocol state
     // TODO add more, as needed
     HashTable *users;
-    char salt[SNPSIZE];
-    char pepper[SNPSIZE];
+    char *key;
 } Bank;
 
 Bank* bank_create();
@@ -49,5 +48,7 @@ ssize_t bank_send(Bank *bank, char *data, size_t data_len);
 ssize_t bank_recv(Bank *bank, char *data, size_t max_data_len);
 void bank_process_local_command(Bank *bank, char *command, size_t len);
 void bank_process_remote_command(Bank *bank, char *command, size_t len);
+int do_evp_seal(FILE *rsa_pkey_file, FILE *in_file, FILE *out_file);
+int do_evp_unseal(FILE *rsa_pkey_file, FILE *in_file, FILE *out_file);
 
 #endif

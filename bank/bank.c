@@ -33,15 +33,9 @@ Bank* bank_create(FILE *fp)
 
     // Set up the protocol state
     bank->users = hash_table_create(SIZE);
-
-    memset(bank->salt, 0x00, SNPSIZE);
-    memset(bank->pepper, 0x00, SNPSIZE);
-
-    fgets(bank->salt, SNPSIZE, fp);
-    fgets(bank->pepper, SNPSIZE, fp);
-
-    bank->salt[strcspn(bank->salt, "\n")] = '\0';
-    bank->pepper[strcspn(bank->pepper, "\n")] = '\0';
+    bank->key = malloc(KSIZE);
+    memset(bank->key, 0x00, KSIZE);
+    fgets(bank->key, KSIZE, fp);
 
     return bank;
 }
@@ -51,7 +45,7 @@ void bank_free(Bank *bank)
     if(bank != NULL)
     {
         close(bank->sockfd);
-
+        free(bank->key);
         hash_table_free(bank->users);
         free(bank);
     }
@@ -138,6 +132,7 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
         }
 
         char hash_content[HASH_PIN_SIZE];
+        memset(hash_content, 0x00, HASH_PIN_SIZE);
         pin_hash(bank, hash_content, pin_str);
 
         fprintf(cardfp, "%s\n", hash_content);
@@ -200,8 +195,12 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 {
   char sendline[1000];
   command[len]=0;
+  char *cmd = malloc(len+1);
+  memset(cmd, 0x00, len+1);
+  strcpy(cmd, command);
+  // decrypt(cmd, bank->key);
 
-  char *p = strtok(command, " \n");
+  char *p = strtok(cmd, " \n");
   if (p == NULL) return;
 
   if (strcmp(p, "user-exists") == 0) { // return "yes" or "no"
@@ -274,5 +273,6 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
   }
 
+  // encrypt(sendline, bank->key);
   bank_send(bank, sendline, strlen(sendline)+1);
 }
