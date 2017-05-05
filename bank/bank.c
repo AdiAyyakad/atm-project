@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define SIZE 10
+#define SIZE 1
 
 Bank* bank_create(FILE *fp)
 {
@@ -88,7 +88,11 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
 
         int *balancep = malloc(sizeof(int));
         *balancep = balance;
-        hash_table_add(bank->users, username, balancep);
+
+        char *malloc_username = malloc(strlen(username));
+        strncpy(malloc_username, username, strlen(username));
+
+        hash_table_add(bank->users, malloc_username, balancep);
 
         printf("Created user %s\n", username);
       }
@@ -138,6 +142,7 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
 void bank_process_remote_command(Bank *bank, char *command, size_t len)
 {
   char sendline[1000];
+  memset(sendline, '\0', 1000);
   command[len]=0;
 
   char *p = strtok(command, " \n");
