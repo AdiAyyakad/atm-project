@@ -87,12 +87,12 @@ void hash_table_add(HashTable *ht, char *key, void *val)
 {
     uint32_t idx = hash(key, strlen(key)) % ht->num_bins;
 
-    // delete key if it exists
-    if(list_find(ht->bins[idx], key) != NULL) hash_table_del(ht, key);
-
-    ht->size -= list_size(ht->bins[idx]);
-    list_add(ht->bins[idx], key, val);
-    ht->size += list_size(ht->bins[idx]);
+    // only unique values
+    if (list_find(ht->bins[idx], key) == NULL) {
+      ht->size -= list_size(ht->bins[idx]);
+      list_add(ht->bins[idx], key, val);
+      ht->size += list_size(ht->bins[idx]);
+    }
 }
 
 void* hash_table_find(HashTable *ht, const char *key)

@@ -143,13 +143,15 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
         fprintf(cardfp, "%s\n", hash_content);
         fclose(cardfp);
 
-        int *balancep = malloc(sizeof(int));
-        *balancep = atoi(balance_str);
+        User *user = malloc(sizeof(User));
+        strcpy(user->name, username);
+        user->pin = atoi(pin_str);
+        user->balance = atoi(balance_str);
 
         char *malloc_username = malloc(strlen(username));
         strncpy(malloc_username, username, strlen(username));
 
-        hash_table_add(bank->users, malloc_username, balancep);
+        hash_table_add(bank->users, malloc_username, user);
 
         printf("Created user %s\n", username);
       }
@@ -169,9 +171,7 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
         if (new_balance < 0) {
           printf("Too rich for this program\n");
         } else {
-          int *nbp = malloc(sizeof(int));
-          *nbp = new_balance;
-          hash_table_add(bank->users, username, nbp);
+          ((User *) hash_table_find(bank->users, username))->balance = new_balance;
           printf("$%d added to %s\'s account\n", amt, username);
         }
       }
@@ -182,11 +182,11 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
       if (username == NULL || strlen(username) > 250) {
         printf("Usage: balance <user-name>\n");
       } else {
-        int *balance = (int *) hash_table_find(bank->users, username);
-        if (balance == NULL) {
-          printf("No such user %d\n", hash_table_size(bank->users));
+        User *user = (User *) hash_table_find(bank->users, username);
+        if (user == NULL) {
+          printf("No such user\n");
         } else {
-          printf("$%d\n", *balance);
+          printf("$%d\n", user->balance);
         }
       }
     } else {
@@ -206,8 +206,9 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
   if (strcmp(p, "user-exists") == 0) { // return "yes" or "no"
 
-    char *user = strtok(NULL, " \n");
-    if (hash_table_find(bank->users, user) != NULL) {
+    char *username = strtok(NULL, " \n");
+    User *user = hash_table_find(bank->users, username);
+    if (user != NULL) {
       sprintf(sendline, "yes");
     } else {
       sprintf(sendline, "no");
@@ -217,40 +218,34 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
     // don't need to check for user existence because atm already is locked into one user
     char *user = strtok(NULL, " \n");
-    int *balancep = (int *) hash_table_find(bank->users, user);
-    sprintf(sendline, "%d", *balancep);
+    int balance = ((User *) hash_table_find(bank->users, user))->balance;
+    sprintf(sendline, "%d", balance);
 
   } else if (strcmp(p, "withdraw") == 0) {
 
-    char *user = strtok(NULL, " \n");
+    char *username = strtok(NULL, " \n");
     char *amt_str = strtok(NULL, " \n");
-    int balance = *((int *) hash_table_find(bank->users, user));
 
-    if (amt_str != NULL) {
-      int new_balance = balance - atoi(amt_str);
-      if (new_balance < 0) {
-        sprintf(sendline, "failure");
-      } else {
-        int *nbp = malloc(sizeof(int));
-        *nbp = new_balance;
+    User *user = (User *) hash_table_find(bank->users, username);
+    int balance = user->balance;
+    int new_balance;
+    if (amt_str != NULL) new_balance = balance - atoi(amt_str);
 
-        char *userptr = malloc(strlen(user));
-        strcpy(userptr, user);
-        hash_table_add(bank->users, userptr, nbp);
-        sprintf(sendline, "success");
-      }
+    if (amt_str != NULL || new_balance < 0) {
+      user->balance = new_balance;
+      sprintf(sendline, "success");
     } else {
       sprintf(sendline, "failure");
     }
 
   } else if (strcmp(p, "pin") == 0) {
 
-    char *user = strtok(NULL, " \n");
+    char *username = strtok(NULL, " \n");
     char *pin = strtok(NULL, " \n");
 
     if (pin_is_valid(pin) == 1) {
       char card_filename[256];
-      sprintf(card_filename, "%s.card", user);
+      sprintf(card_filename, "%s.card", username);
 
       FILE *cardptr = fopen(card_filename, "r");
       char hash_pin[HASH_PIN_SIZE];

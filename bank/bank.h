@@ -23,6 +23,12 @@
 
 #define SNPSIZE 129
 
+typedef struct _User {
+  int pin;
+  char name[251];
+  int balance;
+} User;
+
 typedef struct _Bank
 {
     // Networking state
