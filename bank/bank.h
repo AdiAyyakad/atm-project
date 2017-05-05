@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include "hash_table.h"
 
+#define SNPSIZE 129
+
 typedef struct _Bank
 {
     // Networking state
@@ -31,6 +33,8 @@ typedef struct _Bank
     // Protocol state
     // TODO add more, as needed
     HashTable *users;
+    char salt[SNPSIZE];
+    char pepper[SNPSIZE];
 } Bank;
 
 Bank* bank_create();

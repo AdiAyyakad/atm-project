@@ -3,8 +3,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <limits.h>
 
 #define SIZE 1
+#define HASH_PIN_SIZE 261
 
 Bank* bank_create(FILE *fp)
 {
@@ -32,6 +34,15 @@ Bank* bank_create(FILE *fp)
     // Set up the protocol state
     bank->users = hash_table_create(SIZE);
 
+    memset(bank->salt, 0x00, SNPSIZE);
+    memset(bank->pepper, 0x00, SNPSIZE);
+
+    fgets(bank->salt, SNPSIZE, fp);
+    fgets(bank->pepper, SNPSIZE, fp);
+
+    bank->salt[strcspn(bank->salt, "\n")] = '\0';
+    bank->pepper[strcspn(bank->pepper, "\n")] = '\0';
+
     return bank;
 }
 
@@ -40,6 +51,8 @@ void bank_free(Bank *bank)
     if(bank != NULL)
     {
         close(bank->sockfd);
+
+        hash_table_free(bank->users);
         free(bank);
     }
 }
@@ -57,6 +70,51 @@ ssize_t bank_recv(Bank *bank, char *data, size_t max_data_len)
     return recvfrom(bank->sockfd, data, max_data_len, 0, NULL, NULL);
 }
 
+// Return 1 if valid, 0 if invalid
+int username_is_valid(char *username){
+    if (username == NULL || strlen(username) > 250) return 0;
+
+    int i;
+    for(i = 0; i < strlen(username); i++) {
+        if ((username[i] < 'A') || // if character is less than 'A', it is invalid
+            (username[i] > 'Z' && username[i] < 'a') || // if it is between 'Z' and 'a', it is invalid
+            (username[i] > 'z')) // if it is greater than 'z', it is invalid
+          return 0;
+    }
+
+    return 1;
+}
+
+int pin_is_valid(char *pin) {
+  if (pin == NULL || strlen(pin) != 4) return 0;
+
+  int i;
+  for (i = 0; i < strlen(pin); i++) {
+    if (pin[i] < '0' || pin[1] > '9')
+      return 0;
+  }
+
+  return 1;
+}
+
+int balance_is_valid(char *balance) {
+  if (balance == NULL || strlen(balance) > 10) return 0; // max int has 10 digits
+  int b = atoi(balance);
+  if (b < 0 || b > INT_MAX) return 0;
+
+  int i;
+  for (i = 0; i < strlen(balance); i++) {
+    if (balance[i] < '0' || balance[i] > '9')
+      return 0;
+  }
+
+  return 1;
+}
+
+void pin_hash(Bank *bank, char *dest, char *src) {
+  strcpy(dest, src);
+}
+
 void bank_process_local_command(Bank *bank, char *command, size_t len)
 {
     char * p = strtok(command, " \n");
@@ -67,11 +125,8 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
       char *username = strtok(NULL, " \n");
       char *pin_str = strtok(NULL, " \n");
       char *balance_str = strtok(NULL, " \n");
-      int balance, pin;
-      if (balance_str != NULL) balance = atoi(balance_str);
-      if (pin_str != NULL) pin = atoi(pin_str);
 
-      if (username == NULL || strlen(username) > 250 || pin_str == NULL || balance_str == NULL || strlen(pin_str) != 4 || pin < 0 || balance < 0) {
+      if (username_is_valid(username) != 1 || pin_is_valid(pin_str) != 1 || balance_is_valid(balance_str) != 1) {
         printf("Usage: create-user <user-name> <pin> <balance>\n");
       } else {
         char card_filename[256];
@@ -82,12 +137,14 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
           printf("Error creating card file for user %s\n", username);
         }
 
-        char *content = pin_str;
-        fprintf(cardfp, "%s\n", content);
+        char hash_content[HASH_PIN_SIZE];
+        pin_hash(bank, hash_content, pin_str);
+
+        fprintf(cardfp, "%s\n", hash_content);
         fclose(cardfp);
 
         int *balancep = malloc(sizeof(int));
-        *balancep = balance;
+        *balancep = atoi(balance_str);
 
         char *malloc_username = malloc(strlen(username));
         strncpy(malloc_username, username, strlen(username));
@@ -178,6 +235,34 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
       strcpy(userptr, user);
       hash_table_add(bank->users, userptr, nbp);
       sprintf(sendline, "success");
+    } else {
+      sprintf(sendline, "failure");
+    }
+
+  } else if (strcmp(p, "pin") == 0) {
+
+    char *user = strtok(NULL, " \n");
+    char *pin = strtok(NULL, " \n");
+
+    if (pin_is_valid(pin) == 1) {
+      char card_filename[256];
+      sprintf(card_filename, "%s.card", user);
+
+      FILE *cardptr = fopen(card_filename, "r");
+      char hash_pin[HASH_PIN_SIZE];
+      memset(hash_pin, 0x00, HASH_PIN_SIZE);
+      fgets(hash_pin, HASH_PIN_SIZE, cardptr);
+      hash_pin[strcspn(hash_pin, "\n")] = '\0';
+
+      char hash_pin_input[HASH_PIN_SIZE];
+      memset(hash_pin_input, 0x00, HASH_PIN_SIZE);
+      pin_hash(bank, hash_pin_input, pin);
+
+      if (strcmp(hash_pin, hash_pin_input) == 0)
+        sprintf(sendline, "success");
+      else
+        sprintf(sendline, "failure");
+
     } else {
       sprintf(sendline, "failure");
     }

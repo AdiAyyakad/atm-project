@@ -57,16 +57,22 @@ ssize_t atm_recv(ATM *atm, char *data, size_t max_data_len)
     return recvfrom(atm->sockfd, data, max_data_len, 0, NULL, NULL);
 }
 
+void contact(ATM *atm, char *message, char *response) {
+  atm_send(atm, message, strlen(message)+1);
+  int n = atm_recv(atm, response, SIZE);
+  response[n] = 0;
+}
+
 /**
   * Returns current user balance
   */
 int get_balance(ATM *atm) {
   char response[SIZE], message[259];
+  memset(response, 0x00, SIZE);
+  memset(message, 0x00, 259);
   sprintf(message, "balance %s", atm->current_user);
 
-  atm_send(atm, message, strlen(message)+1);
-  int n = atm_recv(atm, response, SIZE);
-  response[n] = 0;
+  contact(atm, message, response);
 
   return atoi(response);
 }
@@ -77,13 +83,25 @@ int get_balance(ATM *atm) {
 int user_exists(ATM *atm, char *username) {
   // check if user exists from bank
   char response[SIZE], message[263];
+  memset(response, 0x00, SIZE);
+  memset(message, 0x00, 263);
   sprintf(message, "user-exists %s", username);
 
-  atm_send(atm, message, strlen(message)+1);
-  int n = atm_recv(atm, response, SIZE);
-  response[n] = 0;
+  contact(atm, message, response);
 
   return strcmp(response, "yes");
+}
+
+// return 0 if success, otherwise if failed
+int check_pin(ATM *atm, char *username, char *pin) {
+  char response[SIZE], message[260];
+  memset(response, 0x00, SIZE);
+  memset(message, 0x00, 260);
+  sprintf(message, "pin %s %s", username, pin);
+
+  contact(atm, message, response);
+
+  return strcmp(response, "success");
 }
 
 void atm_process_command(ATM *atm, char *command)
@@ -118,8 +136,9 @@ void atm_process_command(ATM *atm, char *command)
         printf("Unable to access %s\'s card\n", username);
         return;
       }
+      fclose(cardfp);
 
-      char ipin_str[5], card_pin[129];
+      char ipin_str[5];
       printf("PIN? ");
 
       if (fgets(ipin_str, sizeof(ipin_str), stdin)) {
@@ -132,23 +151,11 @@ void atm_process_command(ATM *atm, char *command)
           while (((ch = getchar()) != '\n') && !feof(stdin) && !ferror(stdin));
         }
 
-        if (fgets(card_pin, sizeof(card_pin), cardfp)) {
-          p = strchr(card_pin, '\n');
-          if (p) {
-            *p = '\0';
-          } else {
-            int ch;
-            while ((ch = getchar()) != '\n' && !feof(cardfp) && !ferror(cardfp));
-          }
-          fclose(cardfp);
-
-          card_pin[4] = '\0';
-          if (strcmp(ipin_str, card_pin) == 0) {
-            printf("Authorized\n");
-            strncpy(atm->current_user, username, strlen(username));
-          } else {
-            printf("Not authorized\n");
-          }
+        if (check_pin(atm, username, ipin_str) == 0) {
+          printf("Authorized\n");
+          strncpy(atm->current_user, username, strlen(username));
+        } else {
+          printf("Not authorized\n");
         }
       }
 
