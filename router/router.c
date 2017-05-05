@@ -48,7 +48,6 @@ void router_free(Router *router)
 
 ssize_t router_recv(Router *router, char *data, size_t max_len, struct sockaddr_in *sender)
 {
-    printf("Received %s\n", data);
     socklen_t len = 0;
     if(sender != NULL)
         len = sizeof(*sender);

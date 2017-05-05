@@ -121,7 +121,7 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
       } else {
         int *balance = (int *) hash_table_find(bank->users, username);
         if (balance == NULL) {
-          printf("No such user\n");
+          printf("No such user %d\n", hash_table_size(bank->users));
         } else {
           printf("$%d\n", *balance);
         }
