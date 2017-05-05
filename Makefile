@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -fno-stack-protector -Wall -Iutil -Iatm -Ibank -Irouter -I. -lcrypto
+CFLAGS = -fno-stack-protector -Wall -Iutil -Iatm -Ibank -Irouter -I.
 
 all: bin/atm bin/bank bin/router
 

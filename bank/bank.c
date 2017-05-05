@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
-#include <openssl/sha.h>
 
 #define SIZE 1
 #define HASH_PIN_SIZE 261
@@ -112,12 +111,7 @@ int balance_is_valid(char *balance) {
   return 1;
 }
 
-void pin_hash(Bank *bank, char *dest, char *pin) {
-  unsigned char hash_content[HASH_PIN_SIZE];
-  memset(hash_content, 0x00, HASH_PIN_SIZE);
-  snprintf(hash_content, HASH_PIN_SIZE, "%s%s%s", bank->salt, pin, bank->pepper);
-
-  SHA1(hash_content, HASH_PIN_SIZE, hash_content);
+void pin_hash(Bank *bank, char *dest, char *src) {
   strcpy(dest, src);
 }
 
@@ -143,7 +137,7 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
           printf("Error creating card file for user %s\n", username);
         }
 
-        char hash_content[SHA_DIGEST_LENGTH];
+        char hash_content[HASH_PIN_SIZE];
         pin_hash(bank, hash_content, pin_str);
 
         fprintf(cardfp, "%s\n", hash_content);
@@ -255,13 +249,13 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
       sprintf(card_filename, "%s.card", user);
 
       FILE *cardptr = fopen(card_filename, "r");
-      char hash_pin[SHA_DIGEST_LENGTH];
-      memset(hash_pin, 0x00, SHA_DIGEST_LENGTH);
-      fgets(hash_pin, SHA_DIGEST_LENGTH, cardptr);
+      char hash_pin[HASH_PIN_SIZE];
+      memset(hash_pin, 0x00, HASH_PIN_SIZE);
+      fgets(hash_pin, HASH_PIN_SIZE, cardptr);
       hash_pin[strcspn(hash_pin, "\n")] = '\0';
 
-      unsigned char hash_pin_input[SHA_DIGEST_LENGTH];
-      memset(hash_pin_input, 0x00, SHA_DIGEST_LENGTH);
+      char hash_pin_input[HASH_PIN_SIZE];
+      memset(hash_pin_input, 0x00, HASH_PIN_SIZE);
       pin_hash(bank, hash_pin_input, pin);
 
       if (strcmp(hash_pin, hash_pin_input) == 0)
