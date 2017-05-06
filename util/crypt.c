@@ -17,8 +17,6 @@ char* encrypt_src(char *src, char *key) {
 
   xor_strings(encrypted, src, key);
 
-  printf("\nencrypted: %s\nsrc: %s\n", encrypted, src);
-
   return encrypted;
 }
 
@@ -29,7 +27,6 @@ char* decrypt_src(char *src, char *key) {
   memset(decrypted, 0x00, strlen(src) + 1);
 
   xor_strings(decrypted, src, key);
-  printf("\nsrc: %s\ndecrypted: %s\n", src, decrypted);
 
   return decrypted;
 }
