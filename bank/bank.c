@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
+#include "crypt.h"
 
-#define SIZE 1
+#define SIZE 15
 #define HASH_PIN_SIZE 261
 
 Bank* bank_create(FILE *fp)
@@ -33,15 +34,9 @@ Bank* bank_create(FILE *fp)
 
     // Set up the protocol state
     bank->users = hash_table_create(SIZE);
-
-    memset(bank->salt, 0x00, SNPSIZE);
-    memset(bank->pepper, 0x00, SNPSIZE);
-
-    fgets(bank->salt, SNPSIZE, fp);
-    fgets(bank->pepper, SNPSIZE, fp);
-
-    bank->salt[strcspn(bank->salt, "\n")] = '\0';
-    bank->pepper[strcspn(bank->pepper, "\n")] = '\0';
+    bank->key = malloc(KSIZE);
+    memset(bank->key, 0x00, KSIZE);
+    fgets(bank->key, KSIZE, fp);
 
     return bank;
 }
@@ -51,7 +46,7 @@ void bank_free(Bank *bank)
     if(bank != NULL)
     {
         close(bank->sockfd);
-
+        free(bank->key);
         hash_table_free(bank->users);
         free(bank);
     }
@@ -111,8 +106,11 @@ int balance_is_valid(char *balance) {
   return 1;
 }
 
-void pin_hash(Bank *bank, char *dest, char *src) {
-  strcpy(dest, src);
+void pin_enc(Bank *bank, char *dest, char *src) {
+  // do something more secure
+  // use bank->key as a salt
+  strcat(dest, bank->key);
+  strcat(dest, src);
 }
 
 void bank_process_local_command(Bank *bank, char *command, size_t len)
@@ -138,7 +136,8 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
         }
 
         char hash_content[HASH_PIN_SIZE];
-        pin_hash(bank, hash_content, pin_str);
+        memset(hash_content, 0x00, HASH_PIN_SIZE);
+        pin_enc(bank, hash_content, pin_str);
 
         fprintf(cardfp, "%s\n", hash_content);
         fclose(cardfp);
@@ -199,9 +198,12 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
 void bank_process_remote_command(Bank *bank, char *command, size_t len)
 {
   char sendline[1000];
+  memset(sendline, 0x00, 1000);
   command[len]=0;
 
-  char *p = strtok(command, " \n");
+  char *cmd = decrypt_src(command, bank->key);
+
+  char *p = strtok(cmd, " \n");
   if (p == NULL) return;
 
   if (strcmp(p, "user-exists") == 0) { // return "yes" or "no"
@@ -255,7 +257,7 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
       char hash_pin_input[HASH_PIN_SIZE];
       memset(hash_pin_input, 0x00, HASH_PIN_SIZE);
-      pin_hash(bank, hash_pin_input, pin);
+      pin_enc(bank, hash_pin_input, pin);
 
       if (strcmp(hash_pin, hash_pin_input) == 0)
         sprintf(sendline, "success");
@@ -274,5 +276,8 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
   }
 
-  bank_send(bank, sendline, strlen(sendline)+1);
+  char * send = encrypt_src(sendline, bank->key);
+  bank_send(bank, send, strlen(sendline)+1);
+  free(cmd);
+  free(send);
 }

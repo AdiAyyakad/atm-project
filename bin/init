@@ -14,10 +14,10 @@ elif touch "$path.bank" "$path.atm"
   then
 
     SALT="$(openssl rand -base64 48)"
-    PEPPER="$(openssl rand -base64 48)"
+    SALT="$(openssl rand -base64 48)"
 
     echo "$SALT" >> "$path.bank"
-    echo "$PEPPER" >> "$path.bank"
+    echo "$SALT" >> "$path.atm"
 
     echo "Successfully initialized bank state" && exit 0
 else
