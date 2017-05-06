@@ -3,10 +3,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "crypt.h"
 
 #define SIZE 10000
 
-ATM* atm_create()
+ATM* atm_create(FILE *fp)
 {
     ATM *atm = (ATM*) malloc(sizeof(ATM));
     if(atm == NULL)
@@ -31,6 +32,9 @@ ATM* atm_create()
 
     // Set up the protocol state
     memset(atm->current_user, '\0', 251);
+    atm->key = malloc(KSIZE);
+    memset(atm->key, 0x00, KSIZE);
+    fgets(bank->key, KSIZE, fp);
 
     return atm;
 }
@@ -57,24 +61,30 @@ ssize_t atm_recv(ATM *atm, char *data, size_t max_data_len)
     return recvfrom(atm->sockfd, data, max_data_len, 0, NULL, NULL);
 }
 
-void contact(ATM *atm, char *message, char *response) {
-  atm_send(atm, message, strlen(message)+1);
-  int n = atm_recv(atm, response, SIZE);
-  response[n] = 0;
+// puts a malloced string in `response`
+char * contact(ATM *atm, char *message) {
+  char blank_resp[SIZE], *enc_msg = encrypt_src(message, atm->key);
+  atm_send(atm, enc_msg, strlen(message)+1);
+  free(enc_msg);
+
+  int n = atm_recv(atm, blank_resp, SIZE);
+  blank_resp[n] = 0;
+
+  return decrypt_src(blank_resp, atm->key);
 }
 
 /**
   * Returns current user balance
   */
 int get_balance(ATM *atm) {
-  char response[SIZE], message[259];
-  memset(response, 0x00, SIZE);
+  char message[259];
   memset(message, 0x00, 259);
   sprintf(message, "balance %s", atm->current_user);
 
-  contact(atm, message, response);
-
-  return atoi(response);
+  char *response = contact(atm, message);
+  int bal = atoi(response);
+  free(response);
+  return bal;
 }
 
 /**
@@ -82,26 +92,37 @@ int get_balance(ATM *atm) {
   */
 int user_exists(ATM *atm, char *username) {
   // check if user exists from bank
-  char response[SIZE], message[263];
-  memset(response, 0x00, SIZE);
+  char message[263];
   memset(message, 0x00, 263);
   sprintf(message, "user-exists %s", username);
 
-  contact(atm, message, response);
-
-  return strcmp(response, "yes");
+  char *response = contact(atm, message);
+  int ret = strcmp(response, "yes");
+  free(response);
+  return ret;
 }
 
 // return 0 if success, otherwise if failed
 int check_pin(ATM *atm, char *username, char *pin) {
-  char response[SIZE], message[260];
-  memset(response, 0x00, SIZE);
+  char message[260];
   memset(message, 0x00, 260);
   sprintf(message, "pin %s %s", username, pin);
 
-  contact(atm, message, response);
+  char *response = contact(atm, message);
+  int ret = strcmp(response, "success");
+  free(response);
+  return ret;
+}
 
-  return strcmp(response, "success");
+// Return 0 on success
+int withdraw(ATM *atm, int amt) {
+  char msg[271]; // 9 + 250 + 1 + 10 + 1
+  sprintf(msg, "withdraw %s %d", atm->current_user, amt);
+
+  char *response = contact(atm, msg);
+  int ret = strcmp(response, "success");
+  free(response);
+  return ret;
 }
 
 void atm_process_command(ATM *atm, char *command)
@@ -169,13 +190,7 @@ void atm_process_command(ATM *atm, char *command)
       } else if (p == NULL || amt < 0) {
         printf("Usage: withdraw <amt>\n");
       } else {
-        char response[SIZE], msg[271]; // 9 + 250 + 1 + 10 + 1
-        sprintf(msg, "withdraw %s %d", atm->current_user, amt);
-        atm_send(atm, msg, strlen(msg)+1);
-        int n = atm_recv(atm, response, SIZE);
-        response[n] = 0;
-
-        if (strcmp(response, "success") == 0) {
+        if (withdraw(atm, amt) == 0) {
           printf("$%d dispensed\n", amt);
         } else {
           printf("Insufficient funds\n");

@@ -21,8 +21,6 @@
 #include <stdio.h>
 #include "hash_table.h"
 
-#define KSIZE 49
-
 typedef struct _User {
   int pin;
   char name[251];

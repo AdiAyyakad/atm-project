@@ -19,7 +19,8 @@ int main(int argc, char **argv)
       return 64;
     }
 
-    ATM *atm = atm_create();
+    ATM *atm = atm_create(fp);
+    fclose(fp);
 
     printf("ATM: ");
 

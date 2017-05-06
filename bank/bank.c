@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
-#include <crypt.h>
+#include "crypt.h"
 
-#define SIZE 1
+#define SIZE 15
 #define HASH_PIN_SIZE 261
 
 Bank* bank_create(FILE *fp)
@@ -113,14 +113,6 @@ void pin_enc(Bank *bank, char *dest, char *src) {
   strcat(dest, src);
 }
 
-void encrypt(char *src, char *key) {
-  // encrypt src
-}
-
-void decrypt(char *src, char *key) {
-  // decrypt src
-}
-
 void bank_process_local_command(Bank *bank, char *command, size_t len)
 {
     char * p = strtok(command, " \n");
@@ -207,12 +199,9 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 {
   char sendline[1000];
   memset(sendline, 0x00, 1000);
-
   command[len]=0;
-  char *cmd = malloc(len+1);
-  memset(cmd, 0x00, len+1);
-  strcpy(cmd, command);
-  decrypt(cmd, bank->key);
+
+  char *cmd = decrypt_src(command, bank->key);
 
   char *p = strtok(cmd, " \n");
   if (p == NULL) return;
@@ -287,6 +276,8 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
   }
 
-  encrypt(sendline, bank->key);
-  bank_send(bank, sendline, strlen(sendline)+1);
+  char * send = encrypt_src(sendline, bank->key);
+  bank_send(bank, send, strlen(sendline)+1);
+  free(cmd);
+  free(send);
 }
