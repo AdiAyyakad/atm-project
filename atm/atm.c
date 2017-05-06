@@ -34,7 +34,7 @@ ATM* atm_create(FILE *fp)
     memset(atm->current_user, '\0', 251);
     atm->key = malloc(KSIZE);
     memset(atm->key, 0x00, KSIZE);
-    fgets(bank->key, KSIZE, fp);
+    fgets(atm->key, KSIZE, fp);
 
     return atm;
 }
