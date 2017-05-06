@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
+#include <crypt.h>
 
 #define SIZE 1
 #define HASH_PIN_SIZE 261
@@ -105,8 +106,19 @@ int balance_is_valid(char *balance) {
   return 1;
 }
 
-void pin_hash(Bank *bank, char *dest, char *src) {
-  strcpy(dest, src);
+void pin_enc(Bank *bank, char *dest, char *src) {
+  // do something more secure
+  // use bank->key as a salt
+  strcat(dest, bank->key);
+  strcat(dest, src);
+}
+
+void encrypt(char *src, char *key) {
+  // encrypt src
+}
+
+void decrypt(char *src, char *key) {
+  // decrypt src
 }
 
 void bank_process_local_command(Bank *bank, char *command, size_t len)
@@ -133,7 +145,7 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
 
         char hash_content[HASH_PIN_SIZE];
         memset(hash_content, 0x00, HASH_PIN_SIZE);
-        pin_hash(bank, hash_content, pin_str);
+        pin_enc(bank, hash_content, pin_str);
 
         fprintf(cardfp, "%s\n", hash_content);
         fclose(cardfp);
@@ -194,11 +206,13 @@ void bank_process_local_command(Bank *bank, char *command, size_t len)
 void bank_process_remote_command(Bank *bank, char *command, size_t len)
 {
   char sendline[1000];
+  memset(sendline, 0x00, 1000);
+
   command[len]=0;
   char *cmd = malloc(len+1);
   memset(cmd, 0x00, len+1);
   strcpy(cmd, command);
-  // decrypt(cmd, bank->key);
+  decrypt(cmd, bank->key);
 
   char *p = strtok(cmd, " \n");
   if (p == NULL) return;
@@ -254,7 +268,7 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
       char hash_pin_input[HASH_PIN_SIZE];
       memset(hash_pin_input, 0x00, HASH_PIN_SIZE);
-      pin_hash(bank, hash_pin_input, pin);
+      pin_enc(bank, hash_pin_input, pin);
 
       if (strcmp(hash_pin, hash_pin_input) == 0)
         sprintf(sendline, "success");
@@ -273,6 +287,6 @@ void bank_process_remote_command(Bank *bank, char *command, size_t len)
 
   }
 
-  // encrypt(sendline, bank->key);
+  encrypt(sendline, bank->key);
   bank_send(bank, sendline, strlen(sendline)+1);
 }
