@@ -109,8 +109,10 @@ int balance_is_valid(char *balance) {
 void pin_enc(Bank *bank, char *dest, char *src) {
   // do something more secure
   // use bank->key as a salt
-  strcat(dest, bank->key);
-  strcat(dest, src);
+
+  char *enc_ptr = encrypt_src(src, bank->key);
+  strcpy(dest, enc_ptr);
+  free(enc_ptr);
 }
 
 void bank_process_local_command(Bank *bank, char *command, size_t len)
